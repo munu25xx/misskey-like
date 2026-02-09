@@ -1,13 +1,13 @@
 {
   "name": "misskey-like",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Simple Misskey-like SNS",
+  "main": "server/index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server/index.js"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "bcryptjs": "^2.4.3"
   }
