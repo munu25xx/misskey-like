@@ -1,51 +1,56 @@
 const express = require("express");
 const path = require("path");
-const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// メモリDB（簡易）
+// 簡易メモリDB（再起動で消える）
 const users = {};
 const invites = new Set(["INVITE-2026"]);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "../public")));
 
-function hash(password) {
-  return crypto.createHash("sha256").update(password).digest("hex");
-}
-
-// トップ
+// トップページ
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/index.html"));
+  res.sendFile(path.join(__dirname, "../public/index.html"));
 });
 
 // 新規登録
-app.post("/register", (req, res) => {
+app.post("/register", async (req, res) => {
   const { invite, username, password } = req.body;
 
   if (!invites.has(invite)) {
     return res.status(400).send("招待コードが無効です");
   }
-  if (users[username]) {
-    return res.status(400).send("このユーザー名は使えません");
+
+  if (!username || !password) {
+    return res.status(400).send("未入力の項目があります");
   }
 
-  users[username] = {
-    password: hash(password),
-  };
+  if (users[username]) {
+    return res.status(400).send("このユーザー名は使用できません");
+  }
+
+  const hash = await bcrypt.hash(password, 10);
+  users[username] = { password: hash };
 
   res.send("登録完了！");
 });
 
 // ログイン
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   const user = users[username];
 
-  if (!user || user.password !== hash(password)) {
+  if (!user) {
+    return res.status(401).send("ログイン失敗");
+  }
+
+  const ok = await bcrypt.compare(password, user.password);
+  if (!ok) {
     return res.status(401).send("ログイン失敗");
   }
 
@@ -53,5 +58,5 @@ app.post("/login", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log("Server running on " + PORT);
+  console.log(`Server running on port ${PORT}`);
 });
